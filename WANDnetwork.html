@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Washington State Nurse Delegation Network</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        .main-container {
+            max-width: 1400px;
+            margin: 1rem auto;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 1rem;
+            height: calc(100vh - 2rem);
+        }
+
+        .sidebar {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+
+        .search-section {
+            margin-bottom: 2rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e6ed;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .filter-section {
+            margin-bottom: 2rem;
+        }
+
+        .filter-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .filter-group {
+            margin-bottom: 1rem;
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .provider-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .provider-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 4px solid #3498db;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .provider-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .provider-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .provider-location {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .provider-contact {
+            font-size: 0.8rem;
+            color: #27ae60;
+        }
+
+        .map-container {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .map-control-btn {
+            background: rgba(255,255,255,0.9);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .map-control-btn:hover {
+            background: white;
+            transform: translateY(-1px);
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .stats-panel {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            background: rgba(255,255,255,0.9);
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .add-provider-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+
+        .add-provider-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(39, 174, 96, 0.3);
+        }
+
+        .county-stats {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .county-stats h3 {
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .county-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .county-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            font-size: 0.85rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #7f8c8d;
+        }
+
+        .custom-marker {
+            background: #3498db;
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .sidebar {
+                order: 2;
+            }
+            
+            .map-container {
+                height: 500px;
+                order: 1;
+            }
+
+            .map-controls {
+                flex-direction: row;
+                top: 0.5rem;
+                right: 0.5rem;
+            }
+
+            .map-control-btn {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <aside class="sidebar">
+            <button class="add-provider-btn" onclick="openAddProviderModal()">
+                ➕ Add Provider
+            </button>
+            
+            <div class="search-section">
+                <input type="text" class="search-input" placeholder="Search providers, locations..." id="searchInput">
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-title">Filters</div>
+                
+                <div class="filter-group">
+                    <label class="form-label">County</label>
+                    <select class="filter-select" id="countyFilter">
+                        <option value="">All Counties</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="county-stats">
+                <h3>Coverage by County</h3>
+                <div class="county-list" id="countyStatsList">
+                    <!-- County statistics will be populated here -->
+                </div>
+            </div>
+
+            <div class="provider-list" id="providerList">
+                <div class="loading">Loading providers...</div>
+            </div>
+        </aside>
+
+        <main class="map-container">
+            <div class="map-controls">
+                <button class="map-control-btn" onclick="toggleClusters()">🔄 Toggle Clusters</button>
+                <button class="map-control-btn" onclick="centerMap()">🎯 Center View</button>
+                <button class="map-control-btn" onclick="toggleHeatmap()">🔥 Heat Map</button>
+                <button class="map-control-btn" onclick="exportData()">📊 Export Data</button>
+                <button class="map-control-btn" onclick="showAnalytics()">📈 Analytics</button>
+            </div>
+            
+            <div id="map"></div>
+            
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <span class="stat-label">Total Providers:</span>
+                    <span class="stat-value" id="totalProviders">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Counties Served:</span>
+                    <span class="stat-value" id="countiesServed">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Service:</span>
+                    <span class="stat-value" id="activeServices">Nurse Delegation</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Provider Modal -->
+    <div class="modal" id="addProviderModal">
+        <div class="modal-content">
+            <div class="modal-header">Add New Provider</div>
+            <form id="addProviderForm">
+                <div class="form-group">
+                    <label class="form-label">Provider/Organization Name</label>
+                    <input type="text" class="form-input" id="providerName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Contact Person</label>
+                    <input type="text" class="form-input" id="providerContact">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">County</label>
+                    <select class="form-input" id="providerCounty" required>
+                        <option value="">Select County</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Address/Location</label>
+                    <input type="text" class="form-input" id="providerAddress">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Phone</label>
+                    <input type="tel" class="form-input" id="providerPhone">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="providerEmail">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Latitude</label>
+                    <input type="number" class="form-input" id="providerLat" step="any">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Longitude</label>
+                    <input type="number" class="form-input" id="providerLng" step="any">
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddProviderModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Provider</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([47.3511, -120.7401], 7);
+        
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Data storage
+        let providers = [];
+        let allProviders = [];
+        let markerClusterGroup = L.markerClusterGroup({
+            chunkedLoading: true,
+            maxClusterRadius: 50,
+            spiderfyOnMaxZoom: false,
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true
+        });
+        map.addLayer(markerClusterGroup);
+
+        let heatmapLayer = null;
+        let clustersEnabled = true;
+
+        // Geocoding approximation for Washington State Counties
+        const countyCoordinates = {
+            "Adams": [47.12, -118.35], "Asotin": [46.33, -117.25], "Benton": [46.25, -119.50], "Chelan": [47.85, -120.61],
+            "Clallam": [48.05, -123.95], "Clark": [45.75, -122.55], "Columbia": [46.30, -117.90], "Cowlitz": [46.15, -122.70],
+            "Douglas": [47.70, -119.65], "Ferry": [48.55, -118.50], "Franklin": [46.55, -118.95], "Garfield": [46.45, -117.55],
+            "Grant": [47.20, -119.45], "Grays Harbor": [47.15, -123.80], "Island": [48.15, -122.60], "Jefferson": [47.75, -123.60],
+            "King": [47.45, -121.80], "Kitsap": [47.65, -122.65], "Kittitas": [47.15, -120.75], "Klickitat": [45.85, -120.80],
+            "Lewis": [46.60, -122.40], "Lincoln": [47.55, -118.35], "Mason": [47.35, -123.10], "Okanogan": [48.50, -119.75],
+            "Pacific": [46.55, -123.75], "Pend Oreille": [48.55, -117.25], "Pierce": [47.05, -122.15], "San Juan": [48.55, -123.05],
+            "Skagit": [48.45, -121.75], "Skamania": [45.95, -121.90], "Snohomish": [48.05, -121.80], "Spokane": [47.65, -117.40],
+            "Stevens": [48.45, -117.90], "Thurston": [46.90, -122.85], "Wahkiakum": [46.30, -123.40], "Walla Walla": [46.25, -118.50],
+            "Whatcom": [48.85, -121.95], "Whitman": [46.90, -117.50], "Yakima": [46.55, -120.75]
+        };
+
+        // Embedded provider data
+        const providersData = { "items": [ { "business_name": "2 Nurses Contracting LLC", "rn_name": "Brighton, Anita & Warren", "email": "referrals@2nursescontracting.com", "phone": "(253) 905-0156", "counties_served": [ "Clallam", "Clark", "Cowlitz", "Island", "Jefferson", "King", "Kitsap", "Lewis", "Pierce", "Skagit", "Snohomish", "Thurston", "Whatcom" ] }, { "business_name": "A Better Type of Homecare", "rn_name": null, "email": "abthomecare@gmail.com", "phone": "(253) 244-4648", "counties_served": [ "Chelan", "Columbia", "King", "Kitsap", "Kittitas", "Pierce", "Thurston", "Walla Walla", "Yakima" ] }, { "business_name": "A Blissful Haven AFH LLC", "rn_name": null, "email": "ablissfulhaven3afh@gmail.com", "phone": "(509) 230-2384", "counties_served": [ "Spokane" ] }, { "business_name": "A Caring Nurse Delegator and Health Care Services LLC", "rn_name": "M, Connie", "email": "RN.ConnieM@gmail.com", "phone": "(206) 859-3355", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "A-OK Delegation Inc", "rn_name": null, "email": "kabuism@hotmail.com", "phone": "(206) 913-3944", "counties_served": [ "Island", "King", "San Juan", "Skagit", "Snohomish", "Whatcom" ] }, { "business_name": "AA Nurse Delegation Service LLC", "rn_name": null, "email": "all_mus66@yahoo.com", "phone": "(469) 363-1999", "counties_served": [ "King", "Pierce", "Skagit", "Snohomish" ] }, { "business_name": "Absolute Care Nursing Services LLC", "rn_name": null, "email": "absolutecareafh@gmail.com", "phone": "(206) 854-5846", "counties_served": [ "King", "Skagit", "Snohomish" ] }, { "business_name": "Abundance Health LLC", "rn_name": null, "email": "abundancehealthllc1@gmail.com", "phone": "(206) 636-4621", "counties_served": [ "King", "Pierce", "Snohomish", "Thurston" ] }, { "business_name": "Access Delegation and Consulting LLC", "rn_name": null, "email": "accessdelegation@gmail.com", "phone": "(206) 372-4066", "counties_served": [ "King", "Skagit", "Snohomish", "Whatcom" ] }, { "business_name": "Achieve Nursing Services LLC", "rn_name": null, "email": "achievenursing17@gmail.com", "phone": "(206) 371-7276", "counties_served": [ "King" ] }, { "business_name": "Adara Health, LLC", "rn_name": "Ian M", "email": "ianm@adarahealth.com", "phone": "(509) 202-3673", "counties_served": [ "Adams", "Asotin", "Benton", "Chelan", "Columbia", "Douglas", "Ferry", "Franklin", "Garfield", "Grant", "Island", "King", "Kittitas", "Klickitat", "Lincoln", "Okanogan", "Pend Oreille", "San Juan", "Skagit", "Snohomish", "Spokane", "Stevens", "Walla Walla", "Whatcom", "Whitman", "Yakima" ] }, { "business_name": "Advanced Nurse Consultation and Delegation LLC", "rn_name": null, "email": "advancednurseconsultation@yahoo.com", "phone": "(206) 856-6109", "counties_served": [ "King", "Pierce" ] }, { "business_name": "AFH Resources LLC", "rn_name": null, "email": "andy@yourafhresources.com", "phone": "(253) 271-9000", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Afya Njema Nursing Delegators LLC", "rn_name": null, "email": "afyanjemanursedelegators@gmail.com", "phone": "(402) 619-8232", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Agape Healthcare Services LLC", "rn_name": null, "email": "agapehealthcareservicesllc@gmail.com", "phone": "(253) 329-2441", "counties_served": [ "King", "Pierce", "Snohomish" ] }, { "business_name": "Akil Health, LLC", "rn_name": "Nakita Akil", "email": "nakitaakilRN@gmail.com", "phone": "(253) 330-2009", "counties_served": [ "King", "Lewis", "Mason", "Pierce", "Snohomish", "Thurston" ] }, { "business_name": "Alevic Health Care Services LLC", "rn_name": null, "email": "thiongoj@outlook.com", "phone": "(206) 724-9084", "counties_served": [ "Chelan", "Columbia", "Island", "King", "Kitsap", "Kittitas", "Pierce", "San Juan", "Skagit", "Snohomish", "Whatcom" ] }, { "business_name": "Allegiant Nursing Delegation, LLC", "rn_name": null, "email": "Allegiant@comcast.net", "phone": "(206) 353-9853", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Alpha Joy Consulting and Delegation LLC", "rn_name": "Madge", "email": "madgez82@yahoo.com", "phone": "(253) 802-3453", "counties_served": [ "King" ] }, { "business_name": "Altra Health Care PLLC", "rn_name": "Erin", "email": "Erin@altrahc.com", "phone": "(425) 405-0894", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Altruistic Nursing LLC", "rn_name": null, "email": "altruisticnursing@gmail.com", "phone": "(425) 409-1354", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Alvarado, Joan", "rn_name": "Alvarado, Joan", "email": "jbalvarado76@hotmail.com", "phone": "(253) 813-0866", "counties_served": [ "King" ] }, { "business_name": "An AFH Nurse Delegator LLC", "rn_name": null, "email": "sonh06@yahoo.com", "phone": "(206) 430-0997", "counties_served": [ "King", "Kitsap", "Pierce", "Skagit", "Snohomish" ] }, { "business_name": "Ancheta, Shanarel", "rn_name": "Ancheta, Shanarel", "email": "shanarelcmp@gmail.com", "phone": "(808) 430-9787", "counties_served": [ "Island", "San Juan", "Skagit", "Snohomish", "Whatcom" ] }, { "business_name": "Andreas, Kindra Leah", "rn_name": "Andreas, Kindra Leah", "email": "Kindra.Andreas@Icarenurses.com", "phone": "(206) 291-0937", "counties_served": [ "Benton", "Franklin", "King", "Lewis", "Pierce", "Skagit", "Snohomish", "Spokane", "Thurston" ] }, { "business_name": "Angel Touch LLC", "rn_name": "Sinayen, Ester", "email": "estersindayen@yahoo.com", "phone": "(425) 652-1415", "counties_served": [ "King" ] }, { "business_name": "Angeles, Jerome Noel B", "rn_name": "Angeles, Jerome Noel B", "email": "jerome_angeles6@yahoo.com", "phone": "(425) 918-2717", "counties_served": [ "Snohomish" ] }, { "business_name": "Angels Home Training & CED LLC", "rn_name": null, "email": "merid5447@msn.com", "phone": "(206) 354-7560", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Angels Nurse Delegation LLC", "rn_name": "Nderitu, Winnie", "email": "winnie.nderitu@gmail.com", "phone": "(206) 407-9712", "counties_served": [ "Pierce" ] }, { "business_name": "Angels of America Nursing Services, LLC", "rn_name": null, "email": "aoanursingservices@gmail.com", "phone": "(206) 351-0615", "counties_served": [ "King", "Pierce" ] }, { "business_name": "ANGLE, JANICE TUTAAN", "rn_name": "ANGLE, JANICE TUTAAN", "email": "hnsjangle@yahoo.com", "phone": "(206) 380-0042", "counties_served": [ "King" ] }, { "business_name": "Anne's Nurse Delegator LLC", "rn_name": "Anne's", "email": "annemuroki@gmail.com", "phone": "(832) 372-3716", "counties_served": [ "King", "Kitsap", "Kittitas", "Pierce", "Thurston", "Yakima" ] }, { "business_name": "Ash Geriatrics, LLC", "rn_name": "Alice", "email": "alices@ashgeriatrics.com", "phone": "(509) 276-1912", "counties_served": [ "Spokane" ] }, { "business_name": "Assurance Nursing Delegation LLC", "rn_name": null, "email": "mbndelegator@gmail.com", "phone": "(206) 387-1433", "counties_served": [ "King", "Pacific" ] }, { "business_name": "Aubele Consulting LLC", "rn_name": null, "email": "mefspiritedfilly@aol.com", "phone": "(360) 448-0732", "counties_served": [ "Clark" ] }, { "business_name": "Avery, Kristine Atwood", "rn_name": "Avery, Kristine Atwood", "email": "KrisAvery.RND@gmail.com", "phone": "(206) 245-6997", "counties_served": [ "King", "Kitsap" ] }, { "business_name": "Balcha, Tiruwork Asfaw", "rn_name": "Balcha, Tiruwork Asfaw", "email": "gebreal019@yahoo.com", "phone": "(206) 446-7946", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Bali, Zachary Dwayne", "rn_name": "Bali, Zachary Dwayne", "email": "zbali808@gmail.com", "phone": "(808) 344-5689", "counties_served": [ "King", "Pierce", "Snohomish" ] }, { "business_name": "Baseline Delegation LLC", "rn_name": null, "email": "baselinedelegation@gmail.com", "phone": "(206) 915-8421", "counties_served": [ "King", "Kitsap", "Pierce", "Snohomish", "Thurston" ] }, { "business_name": "Baughn, Tamara K", "rn_name": "Bauman, Patricia Alliene", "email": "nursesstationdelegation@gmail.com", "phone": "(509) 342-4163", "counties_served": [ "Lincoln", "Spokane" ] }, { "business_name": "Bauman, Patricia Alliene", "rn_name": "Bauman, Patricia Alliene", "email": "bauman07@comcast.net", "phone": "(206) 920-0950", "counties_served": [ "King" ] }, { "business_name": "Beardsley, Jamie", "rn_name": "Beardsley, Jamie", "email": "ndjbeardsley98@outlook.com", "phone": "(206) 409-8310", "counties_served": [ "Pend Oreille", "Spokane", "Stevens" ] }, { "business_name": "Beaudin, Janice", "rn_name": "Beaudin, Janice", "email": "janicebeaudin@comcast.net", "phone": "(360) 961-1726", "counties_served": [ "Island", "San Juan", "Skagit", "Whatcom" ] }, { "business_name": "Bell, Joyce A.", "rn_name": "Bell, Joyce A.", "email": "haynurse8@gmail.com", "phone": "(509) 549-3644", "counties_served": [ "Garfield", "Spokane", "Whitman" ] }, { "business_name": "Berry, Rebecca L.", "rn_name": "Berry, Rebecca L.", "email": "Beckyberry1@frontier.com", "phone": "(425) 210-6601", "counties_served": [ "Island", "Skagit", "Snohomish" ] }, { "business_name": "Blue Bell Consulting Inc", "rn_name": "Gunderson, Nancy", "email": "nancygunderson@comcast.net", "phone": "(206) 375-4003", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Bogdev, Corina G", "rn_name": "Bogdev, Corina G", "email": "corinabogdev@gmail.com", "phone": "(206) 234-6971", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Boogerd, Linda", "rn_name": "Boggart, Linda", "email": "lindaboogerd@gmail.com", "phone": "(253) 312-9187", "counties_served": [ "Kitsap", "Pierce", "Thurston" ] }, { "business_name": "Borromeo, Josefina", "rn_name": "Borromeo, Josefina", "email": "jcbadulthome@gmail.com", "phone": "(206) 300-4724", "counties_served": [ "King" ] }, { "business_name": "Bottineau, Lyda Jenee", "rn_name": "Bottineau, Lyda", "email": "ljenee@icloud.com", "phone": "(509) 627-9996", "counties_served": [ "Adams", "Asotin", "Benton", "Chelan", "Columbia", "Douglas", "Franklin", "Garfield", "Grant", "Kittitas", "Klickitat", "Lincoln", "Spokane", "Walla Walla", "Whitman", "Yakima" ] }, { "business_name": "Bright Ray AFH LLC", "rn_name": null, "email": "brayafh993@gmail.com", "phone": "(509) 467-0106", "counties_served": [ "Spokane" ] }, { "business_name": "Burgoyne, Amanda Leigh", "rn_name": "Burgoyne, Amanda", "email": "aburgoynern@live.com", "phone": "(360) 560-5776", "counties_served": [ "Clark", "Cowlitz", "Lewis" ] }, { "business_name": "BWM Healthcare Services LLC", "rn_name": null, "email": "bwmugo@gmail.com", "phone": "(206) 788-7480", "counties_served": [ "King", "Kitsap", "Pierce", "Thurston" ] }, { "business_name": "Care Plus Home Health, Inc.", "rn_name": null, "email": "mycareplus@msn.com", "phone": "(360) 373-8016", "counties_served": [ "Lewis", "Mason", "Pierce" ] }, { "business_name": "CareLink West LLC", "rn_name": null, "email": "bethm@trucareconnect.com", "phone": "(833) 977-6777", "counties_served": [ "Adams", "Asotin", "Benton", "Chelan", "Clallam", "Clark", "Columbia", "Cowlitz", "Douglas", "Ferry", "Franklin", "Garfield", "Grant", "Grays Harbor", "Island", "Jefferson", "King", "Kitsap", "Kittitas", "Klickitat", "Lewis", "Lincoln", "Mason", "Okanogan", "Pacific", "Pend Oreille", "Pierce", "San Juan", "Skagit", "Skamania", "Snohomish", "Spokane", "Stevens", "Thurston", "Wahkiakum", "Walla Walla", "Whatcom", "Whitman", "Yakima" ] }, { "business_name": "Carpenter, Zoe C", "rn_name": "Carpenter, Zoe C", "email": "kirkwoodclinicalconsulting@gmail.com", "phone": "(425) 377-5126", "counties_served": [ "King", "Pierce", "Snohomish" ] }, { "business_name": "Cascade Nurse Delegation LLC", "rn_name": null, "email": "cascadedelegation@gmail.com", "phone": "(816) 808-4390", "counties_served": [ "King", "Skagit", "Snohomish", "Whatcom" ] }, { "business_name": "Chatman, Darlene Rahmat", "rn_name": "Chatman, Darlene Rahmat", "email": "emosioke1@yahoo.com", "phone": "(253) 335-4059", "counties_served": [ "King" ] }, { "business_name": "Cleveland, Judith E", "rn_name": "Cleveland, Judith E", "email": "jec1954@hotmail.com", "phone": "(509) 220-6414", "counties_served": [ "Ferry", "Spokane", "Stevens" ] }, { "business_name": "Cocoshmily LLC", "rn_name": null, "email": "cocoshmily@gmail.com", "phone": "(206) 698-8118", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Comfort Plus Nursing Assessment & Delegation PLLC", "rn_name": "Ylagan, Glend", "email": "glend.ylagan@gmail.com", "phone": "(224) 619-7657", "counties_served": [ "Kitsap" ] }, { "business_name": "Comfort, Linda Marie", "rn_name": "Corlis, Deborah", "email": "comfortnursedelegation@gmail.com", "phone": "(509) 499-2015", "counties_served": [ "Pend Oreille", "Spokane", "Stevens", "Whitman" ] }, { "business_name": "Cramer, Dawn Marie", "rn_name": "Cramer, Dawn Marie", "email": "dawncramer8@gmail.com", "phone": "(360) 901-9035", "counties_served": [ "Cowlitz" ] }, { "business_name": "Cruz, Jocelyn", "rn_name": "Cruz, Jocelyn", "email": "goodsamnd@gmail.com", "phone": "(253) 347-3653", "counties_served": [ "King", "Kitsap", "Pierce", "Snohomish" ] }, { "business_name": "Cumpton, Rhonda L", "rn_name": "Cumpton, Rhonda L", "email": "ccsnursedel@comcast.net", "phone": "(509) 844-8216", "counties_served": [ "Spokane", "Stevens" ] }, { "business_name": "Curley, Mary", "rn_name": "Curley, Mary", "email": "curleycollaboration@gmail.com", "phone": "(360) 391-8467", "counties_served": [ "Snohomish" ] }, { "business_name": "Dazell, Angie L.", "rn_name": "Dazell, Angie", "email": "Angie@delegationnurse.com", "phone": "(360) 349-3570", "counties_served": [ "Grays Harbor", "King", "Kitsap", "Lewis", "Mason", "Pierce", "Thurston" ] }, { "business_name": "Deery, Tammy R.", "rn_name": "Deery, Tammy R.", "email": "emergingmedservices@yahoo.com", "phone": "(509) 987-2376", "counties_served": [ "Benton", "Franklin", "Kittitas", "Yakima" ] }, { "business_name": "Delecare Health Services PS Inc.", "rn_name": "Saladinoc,", "email": "saladinoc19@gmail.com", "phone": "(206) 351-3621", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "DNA Consulting Nurse Services PLLC", "rn_name": null, "email": "dnanurse@gmail.com", "phone": "(253) 632-6158", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Dusterhoft, Delores Helen", "rn_name": "Dusterhoft, Delores", "email": "ddusterhoft@aol.com", "phone": "(360) 652-1778", "counties_served": [ "Snohomish" ] }, { "business_name": "Edgel, Karen", "rn_name": "Edgel, Karen", "email": "lynedgel@televar.com", "phone": "(360) 463-0377", "counties_served": [ "Yakima" ] }, { "business_name": "Elaine Nerland LLC", "rn_name": "Elaine Nerland LLC", "email": "enerland@frontier.com", "phone": "(360) 325-2433", "counties_served": [ "Skagit", "Snohomish", "Whatcom" ] }, { "business_name": "Emmanuel Family Homes LLC", "rn_name": null, "email": "emmanuelfamilyhomesllc@gmail.com", "phone": "(509) 703-7954", "counties_served": [ "Spokane" ] }, { "business_name": "Empowering People, Inc.", "rn_name": null, "email": "empoweringpeopleinc@nursedelegation.com", "phone": "(509) 466-0216", "counties_served": [ "Adams", "Asotin", "Benton", "Chelan", "Columbia", "Douglas", "Ferry", "Franklin", "Garfield", "Grant", "Kittitas", "Klickitat", "Lincoln", "Okanogan", "Pend Oreille", "Spokane", "Stevens", "Walla Walla", "Whitman", "Yakima" ] }, { "business_name": "Eneas, Elizabeth", "rn_name": "Eneas, Elizabeth", "email": "dieneas@comcast.net", "phone": "(360) 931-6270", "counties_served": [ "Clark" ] }, { "business_name": "Espino, Maricris P.", "rn_name": "Espino, Maricris P.", "email": "mari.icare@yahoo.com", "phone": "(253) 970-2885", "counties_served": [ "King", "Pierce" ] }, { "business_name": "EY&D LLC", "rn_name": null, "email": "zereay2543@yahoo.com", "phone": "(206) 753-9836", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Eze, Ngozika Nancy", "rn_name": "Eze, Ngozika Nancy", "email": "simplyngozi@gmail.com", "phone": "(206) 617-0396", "counties_served": [ "King" ] }, { "business_name": "Fantai, Tigist", "rn_name": "Fantai, Tigist", "email": "tigistfantai@yahoo.com", "phone": "(206) 420-9974", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Flores III, Manolo Morada", "rn_name": "Flores III, Manolo Morada", "email": "RN.consultingservices@gmail.com", "phone": "(206) 354-0912", "counties_served": [ "King", "Pierce", "Snohomish" ] }, { "business_name": "Fry, Janet G", "rn_name": "Fry, Janet G", "email": "jenfry7@gmail.com", "phone": "(206) 605-2102", "counties_served": [ "Chelan", "Columbia", "Douglas", "Okanogan" ] }, { "business_name": "GAA Delegation and Nursing Services, LLC", "rn_name": null, "email": "dode421961@yahoo.com", "phone": "(315) 222-8909", "counties_served": [ "King", "Lewis", "Pierce", "Thurston" ] }, { "business_name": "Gabsar Consulting and Delegation LLC", "rn_name": null, "email": "gabe.ndungu@gmail.com", "phone": "(301) 693-9540", "counties_served": [ "Pierce" ] }, { "business_name": "Gebrekidan, Bereket", "rn_name": "Gebrekidan, Bereket", "email": "bereketg450@gmail.com", "phone": "(206) 852-9907", "counties_served": [ "Island", "King", "San Juan", "Skagit", "Snohomish", "Whatcom" ] }, { "business_name": "Gempesaw, Roberto", "rn_name": "Gempesaw, Roberto", "email": "robgempesaw@comcast.net", "phone": "(206) 617-0629", "counties_served": [ "King" ] }, { "business_name": "Githu, Sospeter", "rn_name": "Githu, Sospeter", "email": "sosgitau@live.com", "phone": "(508) 847-0714", "counties_served": [ "Grays Harbor", "Jefferson", "King", "Kittitas", "Pierce", "Snohomish", "Yakima" ] }, { "business_name": "Good Shepherd Home Inc", "rn_name": null, "email": "luz@goodshepherdhome.net", "phone": "(206) 432-8301", "counties_served": [ "King" ] }, { "business_name": "GP Health LLC", "rn_name": null, "email": "rnd.serve@gmail.com", "phone": "(509) 607-8895", "counties_served": [ "Adams", "Benton", "Chelan", "Columbia", "Douglas", "Ferry", "Franklin", "Grant", "Kittitas", "Lincoln", "Okanogan", "Spokane", "Stevens", "Yakima" ] }, { "business_name": "Grace Care Giver Training and Continuing Education LLC", "rn_name": null, "email": "fikirteyt@gmail.com", "phone": "(206) 856-9131", "counties_served": [ "King", "Pierce", "Snohomish" ] }, { "business_name": "GROOMS-UNRUH, MELINDA", "rn_name": "GROOMS-UNRUH, MELINDA", "email": "unruhmelinda@peoplepc.com", "phone": "(360) 607-6443", "counties_served": [ "Clark", "Cowlitz", "Skamania" ] }, { "business_name": "Growe, Lana", "rn_name": "Growe, Lana", "email": "landlfarm@frontier.com", "phone": "(425) 971-9351", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Gumiran-Alejandro, Hazeline V", "rn_name": "Gumiran-Alejandro, Hazeline V", "email": "hvgumiran@gmail.com", "phone": "(425) 255-2111", "counties_served": [ "King" ] }, { "business_name": "Haberman, Nancy Lynn", "rn_name": "Haberman, Nancy Lynn", "email": "Nancy@cnsnursing.net", "phone": "(206) 619-3457", "counties_served": [ "King" ] }, { "business_name": "Harmony Nursing Care LLC", "rn_name": "Fjoforova, Oksana", "email": "oksanakfjodorova@gmail.com", "phone": "(425) 435-4377", "counties_served": [ "King", "Skagit", "Snohomish", "Whatcom" ] }, { "business_name": "Hatchett, Rasheda", "rn_name": "Hatchett, Rasheda", "email": "rshatchett@comcast.net", "phone": "(206) 239-8880", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Heather Frank Nursing, P.S.", "rn_name": "Heather Frank Nursing, P.S.", "email": "nursing@blueheronskillednursing.com", "phone": "(360) 821-8175", "counties_served": [ "Clallam", "Jefferson", "Kitsap" ] }, { "business_name": "Heinrich, Michelle", "rn_name": "Heinrich, Michelle", "email": "michelle@pugetsoundnursingservices.com", "phone": "(206) 595-9565", "counties_served": [ "King", "Kitsap", "Pierce", "Thurston" ] }, { "business_name": "Hoffman, Jennifer Marie", "rn_name": "Hoffman, Jennifer Marie", "email": "jenatnite@gmail.com", "phone": "(509) 331-6102", "counties_served": [ "Adams", "Grant", "Spokane", "Whitman" ] }, { "business_name": "Hoffman, Nancy Lee", "rn_name": "Hoffman, Nancy Lee", "email": "metaonetwo@aol.com", "phone": "(206) 284-9895", "counties_served": [ "King" ] }, { "business_name": "Hope Nurse Delegation LLC", "rn_name": null, "email": "hopenursedelegation@gmail.com", "phone": "(253) 228-0135", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Hutchins Nurse Delegation Services LLC", "rn_name": "Hutchins, Danielle", "email": "rndanielle@hutchinsnds.com", "phone": "(360) 490-2733", "counties_served": [ "Grays Harbor", "Kitsap", "Lewis", "Mason", "Pierce", "Thurston" ] }, { "business_name": "In It Together RN LLC", "rn_name": null, "email": "support@iitrn.org", "phone": "(360) 989-4393", "counties_served": [ "Clark", "Cowlitz", "Klickitat", "Pacific", "Skamania", "Wahkiakum" ] }, { "business_name": "Inas Health and Wellness LLC", "rn_name": "O'Connor, Ina", "email": "inaoconnor@gmail.com", "phone": "(541) 521-1714", "counties_served": [ "Chelan", "Columbia", "Douglas", "Klickitat", "Snohomish" ] }, { "business_name": "Infocus Nursing Services", "rn_name": null, "email": "nyambuu@gmail.com", "phone": "(206) 669-5462", "counties_served": [ "King" ] }, { "business_name": "J Baldwin Global Enterprises LLC", "rn_name": "Baldwin, Julie", "email": "julieb@rnconsultingservice.com", "phone": "(425) 350-0536", "counties_served": [ "King", "Skagit", "Snohomish" ] }, { "business_name": "J.Kennedy Nursing Services LLC", "rn_name": "J.Kennedy", "email": "j_n_k@sbcglobalnet", "phone": "(408) 628-7276", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Jessica's Nurse Consulting PLLC", "rn_name": "Jessica", "email": null, "phone": "(___) ___-____", "counties_served": [ "Cowlitz", "Grays Harbor", "Lewis", "Mason", "Pierce", "Thurston" ] }, { "business_name": "JLA Gear Nurse Delegation LLC", "rn_name": null, "email": "jlalcegear@yahoo.com", "phone": "(509) 936-3083", "counties_served": [ "Stevens" ] }, { "business_name": "Johnson, Katie", "rn_name": "Johnson, Katie", "email": "kbellaservices@gmail.com", "phone": "(360) 719-8368", "counties_served": [ "Clark", "Cowlitz" ] }, { "business_name": "Johnson, Virginia J.", "rn_name": "Johnson, Virginia J.", "email": "mountainnurse@comcast.net", "phone": "(360) 798-2722", "counties_served": [ "Clark", "Cowlitz", "Klickitat", "Lewis", "Pacific", "Skamania", "Wahkiakum" ] }, { "business_name": "Journey Nursing Services LLC", "rn_name": "Russell, Heather", "email": "heather.russell@journeynursingservices.com", "phone": "(425) 689-1212", "counties_served": [ "Island", "King", "San Juan", "Skagit", "Snohomish", "Whatcom" ] }, { "business_name": "Kamau, Christine", "rn_name": "Kamau, Christine", "email": "ckamau.rn@gmail.com", "phone": "(253) 397-9379", "counties_served": [ "King", "Pierce" ] }, { "business_name": "KD Delegations LLC", "rn_name": null, "email": "kddelegations@outlook.com", "phone": "(509) 301-2602", "counties_served": [ "Benton", "Franklin", "Walla Walla" ] }, { "business_name": "Kirkby, Marydina", "rn_name": "Kirkby, Marydina", "email": "dinakirk@hotmail.com", "phone": "(425) 417-7477", "counties_served": [ "King" ] }, { "business_name": "Lauber, Melinda", "rn_name": "Lauber, Melinda", "email": "PNWNDelegators@gmail.com", "phone": "(509) 993-8153", "counties_served": [ "Adams", "Asotin", "Benton", "Chelan", "Columbia", "Douglas", "Ferry", "Franklin", "Garfield", "Grant", "Kittitas", "Klickitat", "Lincoln", "Okanogan", "Pend Oreille", "Spokane", "Stevens", "Walla Walla", "Whitman", "Yakima" ] }, { "business_name": "Leah Wagikuyu LLC", "rn_name": "Leah Wagikuyu LLC", "email": "wagikuyu18@gmail.com", "phone": "(206) 317-9755", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Life-Giving Cross Nursing LLC", "rn_name": null, "email": "gulmira4@hotmail.com", "phone": "(509) 430-2624", "counties_served": [ "Benton", "Franklin", "Walla Walla", "Yakima" ] }, { "business_name": "Lindberg, Sharon", "rn_name": "Lindberg, Sharon", "email": "sharonjml@hevanet.com", "phone": "(360) 609-3596", "counties_served": [ "Clark" ] }, { "business_name": "Lizette Vanunu", "rn_name": "Lizette Vanunu", "email": "lizette009us@yahoo.com", "phone": "(253) 332-0958", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Lumbert, April", "rn_name": "Lumbert, April", "email": "april054673@gmail.com", "phone": "(360) 420-1014", "counties_served": [ "Island", "Skagit", "Snohomish" ] }, { "business_name": "Magana, Amber D", "rn_name": "Magana, Amber D", "email": "ambermagana7@gmail.com", "phone": "(253) 561-5654", "counties_served": [ "Cowlitz", "Grays Harbor", "Lewis", "Pierce", "Thurston" ] }, { "business_name": "Magno, Carol", "rn_name": "Magno, Carol", "email": "agenacm@yahoo.ca", "phone": "(206) 239-8825", "counties_served": [ "King" ] }, { "business_name": "Maries, Alina L", "rn_name": "Maries, Alina L", "email": "mariesalina@hotmail.com", "phone": "(425) 941-8431", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Marys Nursing Delegation Services PS Inc", "rn_name": null, "email": "ncaretraining@gmail.com", "phone": "(425) 239-5027", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Master Delegator LLC", "rn_name": null, "email": "awatem2007@hotmail.com", "phone": "(206) 446-5905", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "MC Nurse Consulting LLC", "rn_name": "Gallucci, Olivia", "email": "oliviagallucci@yahoo.com", "phone": "(253) 310-1448", "counties_served": [ "King", "Kitsap", "Mason", "Pierce", "Thurston" ] }, { "business_name": "Medtask Delegation Services PLLC", "rn_name": null, "email": "medtask20@gmail.com", "phone": "(206) 724-9435", "counties_served": [ "King", "Kitsap", "Mason", "Pierce", "Skagit", "Snohomish", "Thurston" ] }, { "business_name": "Moberg, Tami", "rn_name": "Moberg, Tami", "email": "tamirn22@yahoo.com", "phone": "(425) 343-7500", "counties_served": [ "Clallam", "Jefferson", "Snohomish" ] }, { "business_name": "Mulatu, Alemu A", "rn_name": "Mulatu, Alemu A", "email": "alemumerew@gmail.com", "phone": "(206) 428-8079", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Musson, Becky", "rn_name": "Musson, Becky", "email": "bmusson54@gmail.com", "phone": "(509) 690-0105", "counties_served": [ "Spokane", "Stevens" ] }, { "business_name": "Nahom LLC", "rn_name": null, "email": "awasbelay@gmail.com", "phone": "(206) 922-9495", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Navarro, Maria Guadalupe", "rn_name": "Navarro, Maria Guadalupe", "email": "toppnurse93@gmail.com", "phone": "(509) 910-9505", "counties_served": [ "Yakima" ] }, { "business_name": "Nelson, Candy", "rn_name": "Nelson, Candy", "email": "Purpledulcecn@gmail.com", "phone": "(360) 269-5050", "counties_served": [ "Thurston" ] }, { "business_name": "Nelson, Cynthia L.", "rn_name": "Nelson, Cynthia L.", "email": "nelcynRN@gmail.com", "phone": "(425) 232-8785", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Nightingale Nursing Services LLC", "rn_name": null, "email": "nightingalenursingservicesllc@gmail.com", "phone": "(208) 777-5418", "counties_served": [ "Spokane", "Stevens" ] }, { "business_name": "NJ Care LLC", "rn_name": null, "email": "njcare2016@gmail.com", "phone": "(509) 230-4669", "counties_served": [ "King" ] }, { "business_name": "North Star Nursing Services LLC", "rn_name": null, "email": "northstarnursingservices@gmail.com", "phone": "(509) 904-8226", "counties_served": [ "Adams", "Asotin", "Benton", "Douglas", "Ferry", "Franklin", "Garfield", "Grant", "Lincoln", "Okanogan", "Spokane", "Stevens", "Walla Walla", "Whitman" ] }, { "business_name": "Northwest Education and Delegation Services, LLC", "rn_name": null, "email": "jbastine.neads@gmail.com", "phone": "(509) 701-9650", "counties_served": [ "Adams", "Lincoln", "Pend Oreille", "Spokane", "Stevens", "Whitman" ] }, { "business_name": "Northwest Nursing Consultants, LLC", "rn_name": null, "email": "billing@nwnursing.com", "phone": "(509) 406-1405", "counties_served": [ "Benton", "Kittitas", "Yakima" ] }, { "business_name": "Nurse Consultant and Delegation LLC", "rn_name": null, "email": "waekinn@gmail.com", "phone": "(425) 442-1695", "counties_served": [ "King" ] }, { "business_name": "Nurse Consulting and Delegation Services LLC", "rn_name": null, "email": "ukwani1@yahoo.com", "phone": "(206) 427-1818", "counties_served": [ "King" ] }, { "business_name": "Nurse Tammy, PLLC", "rn_name": "Glidewell, Tammy", "email": "tambod15@msn.com", "phone": "(509) 468-2542", "counties_served": [ "Adams", "Douglas", "Grant", "Lincoln", "Pend Oreille", "Spokane", "Stevens", "Whitman" ] }, { "business_name": "Nurse Works LLC", "rn_name": null, "email": "nurseworks@yahoo.com", "phone": "(509) 921-2753", "counties_served": [ "Spokane" ] }, { "business_name": "Olsen, Annzolee", "rn_name": "Olsen, Annzolee", "email": "annzolee@protonmail.com", "phone": "(206) 226-2197", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Olympia Nursing Services LLC", "rn_name": "Danforth, Kristy", "email": "krisdanforth@live.com", "phone": "(360) 870-6295", "counties_served": [ "Thurston" ] }, { "business_name": "OVM Consulting, PLLC", "rn_name": null, "email": "dmgarbutt@gmail.com", "phone": "(253) 202-2745", "counties_served": [ "King", "Pierce", "Snohomish" ] }, { "business_name": "Pacific Shore Adult Family Home LLC", "rn_name": null, "email": "pacificshoreafh@gmail.com", "phone": "(206) 932-0973", "counties_served": [ "Snohomish" ] }, { "business_name": "Paula Cares LLC", "rn_name": "Chorney, Paula", "email": "mdbyheart2@hotmail.com", "phone": "(253) 310-3192", "counties_served": [ "King", "Pierce", "Thurston" ] }, { "business_name": "Peace At Home Nursing Services LLC", "rn_name": null, "email": "peaceathomern@gmail.com", "phone": "(541) 400-0392", "counties_served": [ "Clark", "Klickitat" ] }, { "business_name": "Peterson, Debbie L", "rn_name": "Peterson, Debbie L", "email": "dlp_petersons@hotmail.com", "phone": "(509) 422-6429", "counties_served": [ "Okanogan" ] }, { "business_name": "Pistis Healthcare Services LLC", "rn_name": null, "email": "pk6640@yahoo.com", "phone": "(253) 929-4545", "counties_served": [ "King", "Kitsap", "Pierce", "Snohomish", "Thurston" ] }, { "business_name": "PNW Nurse Consultants, LLC", "rn_name": "Knappert, Rachel", "email": "rachel.knappert@live.com", "phone": "(206) 817-3276", "counties_served": [ "King", "Skagit", "Snohomish", "Whatcom" ] }, { "business_name": "Premier Healthcare Services PS Inc", "rn_name": null, "email": "premiernursedelegation@hotmail.com", "phone": "(206) 349-1838", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Prime Nurse Delegation LLC", "rn_name": "Assele, Alex", "email": "alexassele@outlook.com", "phone": "(847) 372-3899", "counties_served": [ "King", "Skagit", "Snohomish" ] }, { "business_name": "Professional Nursing Services LLC", "rn_name": "Todor, Lydija", "email": "lidija.todor@hotmail.com", "phone": "(206) 484-9802", "counties_served": [ "King", "Pierce", "Snohomish" ] }, { "business_name": "Pros Nursing Services LLC", "rn_name": null, "email": "prosnursing19@gmail.com", "phone": "(425) 780-7387", "counties_served": [ "King" ] }, { "business_name": "Raha Nurse Delegation Services LLC", "rn_name": null, "email": "nasraamohamud@gmail.com", "phone": "(253) 205-5780", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Rainy Day Consulting Inc", "rn_name": "Griffiths, Marge", "email": "marge.griffiths@gmail.com", "phone": "(425) 754-0005", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Recor, Joann E", "rn_name": "Recor, Joann E", "email": "joannrecor@hotmail.com", "phone": "(206) 769-6016", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Registered Nurse Delegation Services LLC", "rn_name": null, "email": "rndswashingtonstate@gmail.com", "phone": "(509) 714-5258", "counties_served": [ "Spokane" ] }, { "business_name": "Renaissance Nurse Delegation LLC", "rn_name": null, "email": "cfalconer12@gmail.com", "phone": "(503) 739-0168", "counties_served": [ "Clark" ] }, { "business_name": "Reynolds, Marcia", "rn_name": "Reynolds, Marcia", "email": "mbreynolds53@msn.com", "phone": "(509) 884-5544", "counties_served": [ "Chelan", "Columbia", "Douglas" ] }, { "business_name": "Riverton AFH LLC", "rn_name": null, "email": "rivertonafh@gmail.com", "phone": "(509) 992-8150", "counties_served": [ "King", "Pierce", "Spokane" ] }, { "business_name": "RN Delegation Network LLC", "rn_name": null, "email": "liyasrnd@gmail.com", "phone": "(425) 404-1400", "counties_served": [ "Snohomish" ] }, { "business_name": "Rogers, Katy Alexis", "rn_name": "Rogers, Katy Alexis", "email": "KatyAlexisRN@protonmail.com", "phone": "(253) 686-4290", "counties_served": [ "King", "Kitsap", "Pierce" ] }, { "business_name": "Rolen, Rachel Alene", "rn_name": "Rolen, Rachel Alene", "email": "sides992001@yahoo.com", "phone": "(425) 312-8264", "counties_served": [ "Island", "King", "San Juan", "Skagit" ] }, { "business_name": "Rus, Vasile", "rn_name": "Rus, Vasile", "email": "catalinrus@icloud.com", "phone": "(360) 949-3854", "counties_served": [ "Clark" ] }, { "business_name": "Russell, Jesse C", "rn_name": "Russell, Jesse C", "email": "JesseRN.Delegation@yahoo.com", "phone": "(360) 913-8774", "counties_served": [ "Island", "Skagit", "Snohomish" ] }, { "business_name": "Sabota, Jill", "rn_name": "Sabota, Jill", "email": "jsabotarnd@outlook.com", "phone": "(509) 993-2154", "counties_served": [ "Spokane" ] }, { "business_name": "Sally Nurse Care & Consultancy Services, LLC", "rn_name": "Sally", "email": "sallyconsultancy@gmail.com", "phone": "(205) 356-5838", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Sandwater, Janiece", "rn_name": "Sandwater, Janiece", "email": "sandwater4@gmail.com", "phone": "(360) 815-2173", "counties_served": [ "Skagit", "Whatcom" ] }, { "business_name": "SBM Nurse Delegation LLC", "rn_name": null, "email": "ssybett@yahoo.com", "phone": "(317) 560-2245", "counties_served": [ "King", "Pierce", "Snohomish" ] }, { "business_name": "Schimke, Allen", "rn_name": "Schimke, Allen", "email": "peakcare@yahoo.com", "phone": "(253) 678-5105", "counties_served": [ "Grays Harbor", "King", "Kitsap", "Mason", "Pierce", "Thurston" ] }, { "business_name": "Schoenfeld, Helen", "rn_name": "Schoenfeld, Helen", "email": "206cato@gmail.com", "phone": "(360) 224-2703", "counties_served": [ "Whatcom" ] }, { "business_name": "Seaview Care RN Delegation LLC", "rn_name": null, "email": "seugnetalbertsdewar@yahoo.com", "phone": "(206) 679-8407", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Seni Nursing Assistant Training LLC", "rn_name": null, "email": "nandre2@yahoo.com", "phone": "(206) 214-7232", "counties_served": [ "King", "Pacific", "Snohomish" ] }, { "business_name": "Senior Consulting Service PLLC", "rn_name": "Brittney", "email": "brittney@seniorconsultingservice.net", "phone": "(360) 490-0479", "counties_served": [ "Grays Harbor", "Lewis", "Mason", "Thurston" ] }, { "business_name": "Sheila's Nurse Delegating LLC", "rn_name": "Sheila", "email": "paulpf2@netzero.net", "phone": "(509) 838-9999", "counties_served": [ "Spokane" ] }, { "business_name": "Sheppard Nurse Delegation LLC", "rn_name": "Sheppard,", "email": "sheppardnursing@outlook.com", "phone": "(360) 229-6013", "counties_served": [ "Grays Harbor", "Jefferson", "Kitsap", "Lewis", "Mason", "Pierce", "Thurston" ] }, { "business_name": "Siegel, Janell", "rn_name": "Siegel, Janell", "email": "janell.harrison@yahoo.com", "phone": "(___) ___-____", "counties_served": [ "Jefferson", "King", "Kitsap", "Mason", "Pierce", "Snohomish", "Thurston" ] }, { "business_name": "Sighete, Cornelia", "rn_name": "Sighete, Cornelia", "email": "nsighete@yahoo.com", "phone": "(818) 497-0010", "counties_served": [ "Clark" ] }, { "business_name": "Simmons, Michelle", "rn_name": "Simmons, Michelle", "email": "aplacetocallhomellc@gmail.com", "phone": "(360) 931-1373", "counties_served": [ "Clark" ] }, { "business_name": "Sitton, Heidi C", "rn_name": "Sitton, Heidi C", "email": "hcsitton@gmail.com", "phone": "(425) 830-6030", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Smyth, Molly", "rn_name": "Smyth, Molly", "email": "MollySmyth2@gmail.com", "phone": "(509) 322-5858", "counties_served": [ "Okanogan" ] }, { "business_name": "SNT Nurse Delegation LLC", "rn_name": "Gear, Spencer", "email": "spencergearrn@gmail.com", "phone": "(641) 231-1620", "counties_served": [ "Pierce", "Spokane", "Stevens" ] }, { "business_name": "SOMAL, STEFKA N", "rn_name": "SOMAL, STEFKA N", "email": "stefkasomal@aol.com", "phone": "(206) 931-7679", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Somera, Enrique", "rn_name": "Somera, Enrique", "email": "enriquersomera@yahoo.com", "phone": "(253) 376-1702", "counties_served": [ "King", "Kitsap", "Pierce", "Snohomish", "Thurston" ] }, { "business_name": "Sonder Healthcare Services LLC", "rn_name": "Sonder, Jen", "email": "jen@sonderhealthcareservices.com", "phone": "(484) 942-9269", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Song, Hoboung", "rn_name": "Song, Hoboung", "email": "miundotori@gmail.com", "phone": "(253) 332-2525", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Sonnenberg, Barbara Joanne", "rn_name": "Sonnenberg, Barbara Joanne", "email": "assemblyofbarb@msn.com", "phone": "(360) 269-0360", "counties_served": [ "Cowlitz", "Lewis", "Thurston" ] }, { "business_name": "Sound Mind Sound Body Nurse Delegation Services Inc", "rn_name": "Miran, Farrah", "email": "farrahmiran@wanurse.com", "phone": "(253) 228-4920", "counties_served": [ "King", "Kitsap", "Pierce", "Thurston" ] }, { "business_name": "Sourcebank LLC", "rn_name": "JacksonAnderson, Karla", "email": "sourcebank@earthlink.net", "phone": "(206) 335-7157", "counties_served": [ "King", "Pierce", "Snohomish" ] }, { "business_name": "Sowe Healthcare Consulting LLC", "rn_name": null, "email": "info@sowehealthcareconsulting.com", "phone": "(425) 760-9423", "counties_served": [ "Island", "San Juan", "Skagit", "Snohomish", "Whatcom" ] }, { "business_name": "Stahlecker, Gena L", "rn_name": "Stahlecker, Gena L", "email": "gstahlecker@gmail.com", "phone": "(360) 787-3110", "counties_served": [ "Clark", "Cowlitz", "Skamania" ] }, { "business_name": "Stevens, Michelle L", "rn_name": "Stevens, Michelle L", "email": "Shellylynnstevens@gmail.com", "phone": "(509) 332-9152", "counties_served": [ "Asotin", "Grant", "Spokane", "Whitman" ] }, { "business_name": "Stevenson, Susan L", "rn_name": "Stevenson, Susan L", "email": "suern2016@gmail.com", "phone": "(509) 710-8524", "counties_served": [ "Pend Oreille", "Spokane", "Stevens" ] }, { "business_name": "Sunrise Delegation LLC", "rn_name": null, "email": "sunrisedelegation@gmail.com", "phone": "(509) 230-2669", "counties_served": [ "Spokane" ] }, { "business_name": "TE Nurse Deligation LLC", "rn_name": null, "email": "tawekese@yahoo.com", "phone": "(206) 484-7663", "counties_served": [ "King", "Pierce", "Snohomish" ] }, { "business_name": "Thompson, Sylvia", "rn_name": "Thompson, Sylvia", "email": "TherapeuticWorks@gmail.com", "phone": "(509) 392-3943", "counties_served": [ "Benton", "Clallam", "Franklin", "Island", "Jefferson", "King", "Kitsap", "Mason", "Pierce", "San Juan", "Skagit", "Snohomish", "Thurston", "Whatcom" ] }, { "business_name": "TNS Nurse Delegation PLLC", "rn_name": "Gear, Tabitha", "email": "tabithagearrn@gmail.com", "phone": "(641) 231-1591", "counties_served": [ "Pierce", "Spokane", "Stevens" ] }, { "business_name": "Trans Nursing Delegation Services PLLC", "rn_name": "Tran, Traci", "email": "traci2tran@gmail.com", "phone": "(206) 377-9662", "counties_served": [ "King", "Snohomish" ] }, { "business_name": "Triple J Nurse Consulting LLC", "rn_name": "Triple, Jess", "email": "jess@triplejnurseconsulting.co", "phone": "(360) 490-3462", "counties_served": [ "Clallam", "Clark", "Cowlitz", "Grays Harbor", "Jefferson", "Kitsap", "Lewis", "Mason", "Pacific", "Pierce", "Thurston" ] }, { "business_name": "Tuifua, Mary", "rn_name": "Tuifua, Mary", "email": "eldervillagepartners@gmail.com", "phone": "(253) 277-0217", "counties_served": [ "King", "Pierce", "Snohomish" ] }, { "business_name": "Valencia, Ladonna Mabel", "rn_name": "Valencia, Ladonna Mabel", "email": "valencialadonna@yahoo.com", "phone": "(509) 881-8958", "counties_served": [ "Chelan", "Columbia", "Douglas", "Grant" ] }, { "business_name": "Velasquez, Elvira Corilla", "rn_name": "Velasquez, Elvira Corilla", "email": "v.elviracorilla@yahoo.com", "phone": "(253) 320-5583", "counties_served": [ "King", "Pierce" ] }, { "business_name": "Wakabap LLC", "rn_name": null, "email": "wakabapu@gmail.com", "phone": "(253) 327-8759", "counties_served": [ "King", "Kitsap", "Pierce" ] }, { "business_name": "Wellness Nursing Consultants LLC", "rn_name": null, "email": "rmugohz@yahoo.com", "phone": "(253) 886-9794", "counties_served": [ "King", "Kitsap", "Pierce", "Snohomish", "Thurston" ] }, { "business_name": "Wical, Jenny", "rn_name": "Wical, Jenny", "email": "wical@comcast.net", "phone": "(206) 679-6654", "counties_served": [ "King", "Kitsap", "Pierce" ] }, { "business_name": "Yoder, Leslie Allison", "rn_name": "Yoder, Leslie Allison", "email": "layoderrn@yahoo.com", "phone": "(360) 751-9069", "counties_served": [ "Clark", "Cowlitz", "Lewis", "Mason", "Skamania", "Thurston", "Wahkiakum" ] }, { "business_name": "Zagrean, Nellie", "rn_name": "Zagrean, Nellie", "email": "nzagrean@hotmail.com", "phone": "(206) 719-1648", "counties_served": [ "King", "Kitsap", "Pierce", "Snohomish" ] }, { "business_name": "Zeigler, Deborah", "rn_name": "Zeigler, Deborah", "email": "livingresilientcoaching@gmail.com", "phone": "(360) 560-5182", "counties_served": [ "Adams", "Asotin", "Benton", "Chelan", "Clallam", "Clark", "Columbia", "Cowlitz", "Douglas", "Ferry", "Franklin", "Garfield", "Grant", "Grays Harbor", "Island", "Jefferson", "King", "Kitsap", "Kittitas", "Klickitat", "Lewis", "Lincoln", "Mason", "Okanogan", "Pacific", "Pend Oreille", "Pierce", "San Juan", "Skagit", "Skamania", "Snohomish", "Spokane", "Stevens", "Thurston", "Wahkiakum", "Walla Walla", "Whatcom", "Whitman", "Yakima" ] } ], "updated_at": "2025-08-16T01:26:49.444828+00:00" };
+
+        // Process provider data
+        function loadProviders() {
+            try {
+                allProviders = providersData.items.flatMap(provider => {
+                    return provider.counties_served.map(county => {
+                        const [lat, lng] = countyCoordinates[county] || [47.35, -120.74];
+                        return {
+                            name: provider.business_name,
+                            contact: provider.rn_name || 'N/A',
+                            county: county,
+                            phone: provider.phone,
+                            email: provider.email,
+                            lat: lat + (Math.random() - 0.5) * 0.1,
+                            lng: lng + (Math.random() - 0.5) * 0.1,
+                            services: ['delegation']
+                        };
+                    });
+                });
+                providers = [...allProviders];
+                populateFilters();
+                renderProviders();
+            } catch (error) {
+                console.error('Error processing provider data:', error);
+                document.getElementById('providerList').innerHTML = '<div class="loading">Error processing provider data.</div>';
+            }
+        }
+
+        function populateFilters() {
+            const counties = [...new Set(allProviders.map(p => p.county))].sort();
+            const countySelects = document.querySelectorAll('#countyFilter, #providerCounty');
+            counties.forEach(county => {
+                countySelects.forEach(select => {
+                    const option = document.createElement('option');
+                    option.value = county;
+                    option.textContent = county + ' County';
+                    select.appendChild(option);
+                });
+            });
+        }
+        
+        // Create custom marker icons
+        function createCustomIcon(county) {
+            const colors = {
+                'King': '#3498db', 'Pierce': '#e74c3c', 'Snohomish': '#2ecc71', 'Spokane': '#f39c12',
+                'Clark': '#9b59b6', 'Thurston': '#1abc9c', 'Kitsap': '#e67e22', 'Whatcom': '#34495e',
+                'Yakima': '#c0392b', 'default': '#7f8c8d'
+            };
+            
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background: ${colors[county] || colors.default}; border: 3px solid white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);">💊</div>`,
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+        }
+
+        // Render providers on map
+        function renderProviders(filteredProviders = providers) {
+            markerClusterGroup.clearLayers();
+            
+            if (heatmapLayer) {
+                updateHeatmap(filteredProviders);
+            }
+            
+            filteredProviders.forEach(provider => {
+                const marker = L.marker([provider.lat, provider.lng], {
+                    icon: createCustomIcon(provider.county)
+                }).bindPopup(`
+                    <div style="min-width: 250px;">
+                        <h3 style="margin: 0 0 10px 0; color: #2c3e50; font-size: 1.1rem;">${provider.name}</h3>
+                        <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Contact:</strong> ${provider.contact}</p>
+                        <p style="margin: 5px 0; font-size: 0.9rem;"><strong>County:</strong> ${provider.county}</p>
+                        <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Phone:</strong> <a href="tel:${provider.phone}" style="color: #27ae60;">${provider.phone}</a></p>
+                        <p style="margin: 5px 0; font-size: 0.9rem;"><strong>Email:</strong> <a href="mailto:${provider.email}" style="color: #3498db;">${provider.email}</a></p>
+                        <div style="margin-top: 15px; display: flex; gap: 5px;">
+                            <button onclick="getDirections(${provider.lat}, ${provider.lng})" style="background: #27ae60; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 0.8rem;">🗺️ Directions</button>
+                        </div>
+                    </div>
+                `);
+                
+                if (clustersEnabled) {
+                    markerClusterGroup.addLayer(marker);
+                } else {
+                    marker.addTo(map);
+                }
+            });
+
+            updateStats(filteredProviders);
+            updateProviderList(filteredProviders);
+            updateCountyStats(filteredProviders);
+        }
+
+        // Update statistics
+        function updateStats(filteredProviders) {
+            document.getElementById('totalProviders').textContent = new Set(filteredProviders.map(p => p.name)).size;
+            document.getElementById('countiesServed').textContent = new Set(filteredProviders.map(p => p.county)).size;
+        }
+
+        // Update county statistics
+        function updateCountyStats(filteredProviders) {
+            const countyStats = {};
+            filteredProviders.forEach(provider => {
+                countyStats[provider.county] = (countyStats[provider.county] || 0) + 1;
+            });
+            
+            const countyStatsList = document.getElementById('countyStatsList');
+            countyStatsList.innerHTML = '';
+            
+            Object.entries(countyStats)
+                .sort(([,a], [,b]) => b - a)
+                .forEach(([county, count]) => {
+                    const item = document.createElement('div');
+                    item.className = 'county-item';
+                    item.innerHTML = `
+                        <span>${county} County</span>
+                        <span style="font-weight: 600; color: #3498db;">${count}</span>
+                    `;
+                    item.onclick = () => {
+                        document.getElementById('countyFilter').value = county;
+                        applyFilters();
+                    };
+                    item.style.cursor = 'pointer';
+                    countyStatsList.appendChild(item);
+                });
+        }
+
+        // Update provider list in sidebar
+        function updateProviderList(filteredProviders) {
+            const providerList = document.getElementById('providerList');
+            providerList.innerHTML = '';
+            
+            if (filteredProviders.length === 0) {
+                providerList.innerHTML = '<div class="loading">No providers found matching your criteria.</div>';
+                return;
+            }
+            
+            const uniqueProviders = [...new Map(filteredProviders.map(item => [item['name'], item])).values()];
+
+            uniqueProviders.forEach(provider => {
+                const card = document.createElement('div');
+                card.className = 'provider-card';
+                card.innerHTML = `
+                    <div class="provider-name">${provider.name}</div>
+                    <div class="provider-location">${provider.county} County</div>
+                    <div class="provider-contact">${provider.phone}</div>
+                `;
+                card.onclick = () => {
+                    map.setView([provider.lat, provider.lng], 12);
+                    markerClusterGroup.eachLayer(layer => {
+                        if (layer.getLatLng().lat === provider.lat && layer.getLatLng().lng === provider.lng) {
+                            layer.openPopup();
+                        }
+                    });
+                };
+                providerList.appendChild(card);
+            });
+        }
+
+        // Search and filter functionality
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const countyFilter = document.getElementById('countyFilter').value;
+            
+            providers = allProviders.filter(provider => {
+                const matchesSearch = searchTerm === '' || 
+                    provider.name.toLowerCase().includes(searchTerm) ||
+                    provider.contact.toLowerCase().includes(searchTerm) ||
+                    provider.county.toLowerCase().includes(searchTerm);
+                
+                const matchesCounty = countyFilter === '' || provider.county === countyFilter;
+                
+                return matchesSearch && matchesCounty;
+            });
+            
+            renderProviders(providers);
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('countyFilter').addEventListener('change', applyFilters);
+
+        // Modal functions
+        function openAddProviderModal() {
+            document.getElementById('addProviderModal').style.display = 'block';
+        }
+
+        function closeAddProviderModal() {
+            document.getElementById('addProviderModal').style.display = 'none';
+            document.getElementById('addProviderForm').reset();
+        }
+
+        // Add provider form submission
+        document.getElementById('addProviderForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newProvider = {
+                name: document.getElementById('providerName').value,
+                contact: document.getElementById('providerContact').value || document.getElementById('providerName').value,
+                county: document.getElementById('providerCounty').value,
+                phone: document.getElementById('providerPhone').value,
+                email: document.getElementById('providerEmail').value,
+                lat: parseFloat(document.getElementById('providerLat').value),
+                lng: parseFloat(document.getElementById('providerLng').value),
+                services: ["delegation"]
+            };
+            
+            allProviders.push(newProvider);
+            applyFilters();
+            closeAddProviderModal();
+            
+            alert('Provider added successfully!');
+        });
+
+        // Map control functions
+        function toggleClusters() {
+            clustersEnabled = !clustersEnabled;
+            renderProviders(providers);
+        }
+
+        function centerMap() {
+            map.setView([47.3511, -120.7401], 7);
+        }
+
+        function toggleHeatmap() {
+            if (heatmapLayer) {
+                map.removeLayer(heatmapLayer);
+                heatmapLayer = null;
+            } else {
+                updateHeatmap(providers);
+            }
+        }
+
+        function updateHeatmap(data) {
+            if (heatmapLayer) {
+                map.removeLayer(heatmapLayer);
+            }
+            
+            const heatData = data.map(provider => [provider.lat, provider.lng, 1]);
+            heatmapLayer = L.heatLayer(heatData, {
+                radius: 25,
+                blur: 15,
+                maxZoom: 10
+            }).addTo(map);
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allProviders, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "wa_nurse_delegation_network.json");
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function showAnalytics() {
+            const analytics = generateAnalytics();
+            alert(`WA Nurse Delegation Network Analytics:\n\n${analytics}`);
+        }
+
+        function generateAnalytics() {
+            const totalProviders = new Set(allProviders.map(p => p.name)).size;
+            const countyCount = new Set(allProviders.map(p => p.county)).size;
+            
+            const countyDistribution = {};
+            allProviders.forEach(p => {
+                countyDistribution[p.county] = (countyDistribution[p.county] || 0) + 1;
+            });
+            
+            const topCounties = Object.entries(countyDistribution)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5)
+                .map(([county, count]) => `${county}: ${count} providers`)
+                .join('\n');
+            
+            return `Total Providers: ${totalProviders}
+Counties Covered: ${countyCount}/39 WA Counties
+
+Top Counties by Provider Count:
+${topCounties}`;
+        }
+
+        function getDirections(lat, lng) {
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+            window.open(url, '_blank');
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', loadProviders);
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('addProviderModal');
+            if (event.target === modal) {
+                closeAddProviderModal();
+            }
+        }
+    </script>
+</body>
+</html>
